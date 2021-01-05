@@ -1,0 +1,37 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'docker'
+      defaultContainer 'docker'
+    }
+  }
+  environment {
+    TOKEN= credentials ('50197636-2df6-4563-a8fe-a84c6f5bb6c7')
+  }
+
+  stages { 
+    stage('Source')
+        {
+            steps{
+                git credentialsId: '5495d957-55cf-454e-a518-508c2d62a2cd',
+                    url: 'ssh://git@github.com/eyacom/devtools-containers.git',
+                    branch: 'master'
+            }
+        }
+    stage ('build docker container') {
+      steps {
+        dir('custom-keycloak') {
+          sh 'dockerd &'
+          sh 'docker build -t docker.pkg.github.com/eyacom/devtools-containers/keycloak:latest .'
+        }
+      }
+    }
+    stage ('push image') {
+      steps {
+        sh "docker login https://docker.pkg.github.com -u eyacom-bot -p ${env.TOKEN}"
+        sh "docker push docker.pkg.github.com/eyacom/devtools-containers/keycloak:latest"
+      }
+    }
+  }
+}
+
